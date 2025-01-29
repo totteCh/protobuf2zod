@@ -11,6 +11,17 @@ message Person {
     string nickname = 5;
     string alias = 6;
   }
+
+  map<string, string> attributes = 7;
+  map<string, int32> scores = 8;
+  map<int32, Address> addresses = 9;
+}
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string state = 3;
+  string zip = 4;
 }
 
 enum Gender {

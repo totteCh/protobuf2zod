@@ -52,7 +52,45 @@ fn generate_field(output: &mut String, field: &Field, is_oneof: bool) {
         FieldType::String => "z.string()",
         FieldType::Bytes => "z.instanceof(Uint8Array)",
         FieldType::MessageOrEnum(ref name) => name,
-        FieldType::Map(_, _) => "z.record(z.string(), z.any())", // Simplified for now
+        FieldType::Map(ref key_type, ref value_type) => {
+            let key_type_str = match key_type.as_ref() {
+                FieldType::String => "z.string()",
+                FieldType::Int32
+                | FieldType::Int64
+                | FieldType::UInt32
+                | FieldType::UInt64
+                | FieldType::SInt32
+                | FieldType::SInt64
+                | FieldType::Fixed32
+                | FieldType::Fixed64
+                | FieldType::SFixed32
+                | FieldType::SFixed64 => "z.number().int()",
+                FieldType::Bool => "z.boolean()",
+                _ => "z.any()", // Default to any for unsupported key types
+            };
+
+            let value_type_str = match value_type.as_ref() {
+                FieldType::Double | FieldType::Float => "z.number()",
+                FieldType::Int32
+                | FieldType::Int64
+                | FieldType::UInt32
+                | FieldType::UInt64
+                | FieldType::SInt32
+                | FieldType::SInt64
+                | FieldType::Fixed32
+                | FieldType::Fixed64
+                | FieldType::SFixed32
+                | FieldType::SFixed64 => "z.number().int()",
+                FieldType::Bool => "z.boolean()",
+                FieldType::String => "z.string()",
+                FieldType::Bytes => "z.instanceof(Uint8Array)",
+                FieldType::MessageOrEnum(ref name) => name,
+                _ => "z.any()", // Default to any for unsupported value types
+            };
+
+            let record_str = &format!("z.record({}, {})", key_type_str, value_type_str).to_string();
+            &record_str.to_string()
+        }
     };
 
     let field_type = if let FieldLabel::Repeated = field.label {

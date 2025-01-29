@@ -14,8 +14,17 @@ const Person = z.object({
   age: z.number().int(),
   hobbies: z.string().array(),
   gender: Gender,
+  attributes: z.record(z.string(), z.string()),
+  scores: z.record(z.string(), z.number().int()),
+  addresses: z.record(z.number().int(), Address),
   identity: z.union([
     z.object({ nickname: z.string() }),
     z.object({ alias: z.string() }),
   ]),
+});
+const Address = z.object({
+  street: z.string(),
+  city: z.string(),
+  state: z.string(),
+  zip: z.string(),
 });
