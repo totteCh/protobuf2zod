@@ -1,4 +1,5 @@
 use log::{error, info};
+use protobuf_to_zod::generator::zod_generator::generate_zod_schemas;
 use protobuf_to_zod::parser::parse_proto_file;
 use std::error::Error;
 use std::fs;
@@ -31,6 +32,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     info!("Successfully parsed Protobuf file");
     info!("Parsed content: {:#?}", proto_file);
+
+    let zod_schemas = generate_zod_schemas(&proto_file);
+    println!("Generated Zod schemas:\n{}", zod_schemas);
 
     Ok(())
 }
