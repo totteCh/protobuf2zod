@@ -4,12 +4,13 @@ use std::fmt::Write;
 pub fn generate_zod_schemas(proto_file: &ProtoFile) -> String {
     let mut output = String::new();
 
-    for message in &proto_file.messages {
-        generate_message_schema(&mut output, message);
-    }
-
+    // Generate enums before messages to prevent variable used before declaration errors
     for enum_def in &proto_file.enums {
         generate_enum_schema(&mut output, enum_def);
+    }
+
+    for message in &proto_file.messages {
+        generate_message_schema(&mut output, message);
     }
 
     output
