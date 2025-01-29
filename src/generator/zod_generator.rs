@@ -1,4 +1,4 @@
-use crate::parser::ast::{Enum, EnumValue, Field, FieldType, Message, ProtoFile};
+use crate::parser::ast::{Enum, EnumValue, Field, FieldLabel, FieldType, Message, ProtoFile};
 use heck::ToLowerCamelCase;
 use std::fmt::Write;
 
@@ -43,6 +43,12 @@ fn generate_field_schema(output: &mut String, field: &Field) {
         FieldType::Bytes => "z.instanceof(Uint8Array)",
         FieldType::MessageOrEnum(ref name) => name,
         FieldType::Map(_, _) => "z.record(z.string(), z.any())", // Simplified for now
+    };
+
+    let field_type = if let FieldLabel::Repeated = field.label {
+        format!("{}.array()", field_type)
+    } else {
+        field_type.to_string()
     };
 
     let field_name = to_camel_case(&field.name);
