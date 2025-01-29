@@ -8,7 +8,7 @@ pub mod error;
 mod lexer;
 
 use crate::parser::ast::{
-    Enum, EnumValue, Field, FieldLabel, Import, ImportKind, Message, Method, OptionValue,
+    Enum, EnumValue, Field, FieldLabel, Import, ImportKind, Message, Method, OneOf, OptionValue,
     ProtoFile, ProtoOption, Service, Syntax,
 };
 
@@ -478,6 +478,10 @@ where
                 Token::Reserved => {
                     parse_reserved(tokens, &mut message.reserved)?;
                 }
+                Token::Oneof => {
+                    let oneof = parse_oneof(tokens)?;
+                    message.oneofs.push(oneof);
+                }
                 _ => {
                     let field = parse_field(tokens)?;
                     message.fields.push(field);
@@ -489,6 +493,74 @@ where
     }
 
     Err(ParseError::UnexpectedEndOfInput(open_brace_token.location))
+}
+
+fn parse_oneof<'a, I>(tokens: &mut Peekable<I>) -> Result<OneOf, ParseError>
+where
+    I: Iterator<Item = TokenWithLocation<'a>>,
+{
+    expect_token(tokens, Token::Oneof)?;
+    let name = expect_identifier(tokens)?;
+    expect_token(tokens, Token::OpenBrace)?;
+
+    let mut oneof = OneOf {
+        name,
+        fields: Vec::new(),
+    };
+
+    while let Some(token) = tokens.peek() {
+        match token.token {
+            Token::CloseBrace => {
+                expect_token(tokens, Token::CloseBrace)?;
+                break;
+            }
+            _ => {
+                let field = parse_field(tokens)?;
+                oneof.fields.push(field);
+            }
+        }
+    }
+
+    Ok(oneof)
+}
+
+fn expect_token<'a, I>(
+    tokens: &mut Peekable<I>,
+    expected: Token,
+) -> Result<TokenWithLocation<'a>, ParseError>
+where
+    I: Iterator<Item = TokenWithLocation<'a>>,
+{
+    if let Some(token) = tokens.next() {
+        if token.token == expected {
+            Ok(token)
+        } else {
+            Err(ParseError::UnexpectedToken(
+                format!("Expected {:?}, found {:?}", expected, token.token),
+                token.location,
+            ))
+        }
+    } else {
+        Err(ParseError::UnexpectedEndOfInput(Location::new(0, 0)))
+    }
+}
+
+fn expect_identifier<'a, I>(tokens: &mut Peekable<I>) -> Result<String, ParseError>
+where
+    I: Iterator<Item = TokenWithLocation<'a>>,
+{
+    if let Some(token) = tokens.next() {
+        if let Token::Identifier(name) = token.token {
+            Ok(name.to_string())
+        } else {
+            Err(ParseError::UnexpectedToken(
+                format!("Expected identifier, found {:?}", token.token),
+                token.location,
+            ))
+        }
+    } else {
+        Err(ParseError::UnexpectedEndOfInput(Location::new(0, 0)))
+    }
 }
 
 /// Parses a message definition from the token stream.

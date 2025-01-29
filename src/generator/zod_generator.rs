@@ -1,4 +1,6 @@
-use crate::parser::ast::{Enum, EnumValue, Field, FieldLabel, FieldType, Message, ProtoFile};
+use crate::parser::ast::{
+    Enum, EnumValue, Field, FieldLabel, FieldType, Message, OneOf, ProtoFile,
+};
 use heck::ToLowerCamelCase;
 use std::fmt::Write;
 
@@ -25,12 +27,15 @@ pub fn generate_zod_schemas(proto_file: &ProtoFile) -> String {
 fn generate_message_schema(output: &mut String, message: &Message) {
     writeln!(output, "const {} = z.object({{", message.name).unwrap();
     for field in &message.fields {
-        generate_field_schema(output, field);
+        generate_field(output, field, false);
+    }
+    for oneof in &message.oneofs {
+        generate_oneof_schema(output, oneof);
     }
     writeln!(output, "}});").unwrap();
 }
 
-fn generate_field_schema(output: &mut String, field: &Field) {
+fn generate_field(output: &mut String, field: &Field, is_oneof: bool) {
     let field_type = match &field.typ {
         FieldType::Double | FieldType::Float => "z.number()",
         FieldType::Int32
@@ -57,7 +62,24 @@ fn generate_field_schema(output: &mut String, field: &Field) {
     };
 
     let field_name = to_camel_case(&field.name);
-    writeln!(output, "  {}: {},", field_name, field_type).unwrap();
+    if is_oneof {
+        writeln!(
+            output,
+            "    z.object({{ {}: {} }}),",
+            field_name, field_type
+        )
+        .unwrap();
+    } else {
+        writeln!(output, "  {}: {},", field_name, field_type).unwrap();
+    }
+}
+
+fn generate_oneof_schema(output: &mut String, oneof: &OneOf) {
+    writeln!(output, "  {}: z.union([", to_camel_case(&oneof.name)).unwrap();
+    for field in &oneof.fields {
+        generate_field(output, field, true);
+    }
+    writeln!(output, "  ]),").unwrap();
 }
 
 fn generate_enum_schema(output: &mut String, enum_def: &Enum) {

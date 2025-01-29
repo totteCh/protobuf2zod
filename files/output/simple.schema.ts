@@ -14,4 +14,8 @@ const Person = z.object({
   age: z.number().int(),
   hobbies: z.string().array(),
   gender: Gender,
+  identity: z.union([
+    z.object({ nickname: z.string() }),
+    z.object({ alias: z.string() }),
+  ]),
 });

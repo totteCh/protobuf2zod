@@ -6,6 +6,11 @@ message Person {
   int32 age = 2;
   repeated string hobbies = 3;
   Gender gender = 4;
+
+  oneof identity {
+    string nickname = 5;
+    string alias = 6;
+  }
 }
 
 enum Gender {
