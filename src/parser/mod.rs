@@ -64,19 +64,40 @@ where
     // required
     parse_syntax(&mut tokens, &mut proto_file)?;
 
-    // Parse options that might follow syntax
+    while let Some(token) = tokens.peek() {
+        match &token.token {
+            Token::Package => parse_package(&mut tokens, &mut proto_file)?,
+            Token::Comment(_) => {
+                tokens.next(); // Skip comments
+            }
+            _ => break,
+        }
+    }
+
+    // Parse imports that might follow package
+    while let Some(token) = tokens.peek() {
+        match &token.token {
+            Token::Import => parse_import(&mut tokens, &mut proto_file)?,
+            Token::Comment(_) => {
+                tokens.next(); // Skip comments
+            }
+            _ => break,
+        }
+    }
+
+    // Parse options that might follow imports
     while let Some(token) = tokens.peek() {
         match &token.token {
             Token::Option => parse_option(&mut tokens, &mut proto_file.options)?,
+            Token::Comment(_) => {
+                tokens.next(); // Skip comments
+            }
             _ => break,
         }
     }
 
     while let Some(current_token) = tokens.peek() {
         match &current_token.token {
-            Token::Syntax => parse_syntax(&mut tokens, &mut proto_file)?,
-            Token::Package => parse_package(&mut tokens, &mut proto_file)?,
-            Token::Import => parse_import(&mut tokens, &mut proto_file)?,
             Token::Message => {
                 let message = parse_message(&mut tokens)?;
                 proto_file.messages.push(message);

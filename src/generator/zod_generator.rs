@@ -1,4 +1,5 @@
-use crate::parser::ast::{Enum, Field, FieldType, Message, ProtoFile};
+use crate::parser::ast::{Enum, EnumValue, Field, FieldType, Message, ProtoFile};
+use heck::ToLowerCamelCase;
 use std::fmt::Write;
 
 pub fn generate_zod_schemas(proto_file: &ProtoFile) -> String {
@@ -44,13 +45,41 @@ fn generate_field_schema(output: &mut String, field: &Field) {
         FieldType::Map(_, _) => "z.record(z.string(), z.any())", // Simplified for now
     };
 
-    writeln!(output, "  {}: {},", field.name, field_type).unwrap();
+    let field_name = to_camel_case(&field.name);
+    writeln!(output, "  {}: {},", field_name, field_type).unwrap();
 }
 
 fn generate_enum_schema(output: &mut String, enum_def: &Enum) {
     writeln!(output, "const {} = z.enum([", enum_def.name).unwrap();
+    let prefix = find_common_prefix(&enum_def.values);
     for value in &enum_def.values {
-        writeln!(output, "  \"{}\",", value.name).unwrap();
+        let stripped_value = value.name.strip_prefix(&prefix).unwrap_or(&value.name);
+        writeln!(output, "  \"{}\",", stripped_value).unwrap();
     }
     writeln!(output, "]);").unwrap();
+}
+
+fn to_camel_case(s: &str) -> String {
+    s.to_lower_camel_case()
+}
+
+fn find_common_prefix(values: &[EnumValue]) -> String {
+    if values.is_empty() {
+        return String::new();
+    }
+
+    let first = &values[0].name;
+    let mut prefix_len = first.len();
+
+    for value in values.iter().skip(1) {
+        prefix_len = prefix_len.min(value.name.len());
+        for (i, (c1, c2)) in first.chars().zip(value.name.chars()).enumerate() {
+            if c1 != c2 {
+                prefix_len = i;
+                break;
+            }
+        }
+    }
+
+    first[..prefix_len].to_string()
 }

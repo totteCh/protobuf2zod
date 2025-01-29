@@ -2,14 +2,14 @@ syntax = "proto3";
 package simple;
 
 message Person {
-    string name = 1;
-    int32 age = 2;
-    repeated string hobbies = 3;
-    Gender MALE = 4;
+  string name = 1;
+  int32 age = 2;
+  repeated string hobbies = 3;
+  Gender gender = 4;
 }
 
 enum Gender {
-    UNKNOWN = 0;
-    MALE = 1;
-    FEMALE = 2;
+  GENDER_UNSPECIFIED = 0;
+  GENDER_MALE = 1;
+  GENDER_FEMALE = 2;
 }

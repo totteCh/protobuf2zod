@@ -33,15 +33,15 @@ messages: [
         name: "CreateLogRequest",
         fields: [
             Field {
-                name: "logFilePath",
                 number: 1,
+                name: "log_file_path",
                 label: Optional,
                 typ: String,
                 options: [],
             },
             Field {
-                name: "logType",
                 number: 2,
+                name: "log_type",
                 label: Optional,
                 typ: MessageOrEnum(
                     "LogType",
@@ -59,8 +59,8 @@ messages: [
         name: "CreateLogResponse",
         fields: [
             Field {
-                name: "logId",
                 number: 1,
+                name: "log_id",
                 label: Optional,
                 typ: Int32,
                 options: [],
@@ -76,15 +76,15 @@ messages: [
         name: "LogMessage",
         fields: [
             Field {
-                name: "logId",
                 number: 1,
+                name: "log_id",
                 label: Optional,
                 typ: Int32,
                 options: [],
             },
             Field {
-                name: "logMessage",
                 number: 2,
+                name: "log_message",
                 label: Optional,
                 typ: String,
                 options: [],
@@ -102,33 +102,38 @@ enums: [
         name: "LogType",
         values: [
             EnumValue {
-                name: "BUCK_LOG",
                 number: 0,
+                name: "LOG_TYPE_UNSPECIFIED",
                 options: [],
             },
             EnumValue {
-                name: "BUCK_MACHINE_LOG",
                 number: 1,
+                name: "LOG_TYPE_BUCK_LOG",
                 options: [],
             },
             EnumValue {
-                name: "CHROME_TRACE_LOG",
                 number: 2,
+                name: "LOG_TYPE_BUCK_MACHINE_LOG",
                 options: [],
             },
             EnumValue {
-                name: "SIMPLE_CONSOLE_LOG",
                 number: 3,
+                name: "LOG_TYPE_CHROME_TRACE_LOG",
                 options: [],
             },
             EnumValue {
-                name: "CRITICAL_PATH_LOG",
                 number: 4,
+                name: "LOG_TYPE_SIMPLE_CONSOLE_LOG",
                 options: [],
             },
             EnumValue {
-                name: "RULE_KEY_LOG",
                 number: 5,
+                name: "LOG_TYPE_CRITICAL_PATH_LOG",
+                options: [],
+            },
+            EnumValue {
+                number: 6,
+                name: "LOG_TYPE_RULE_KEY_LOG",
                 options: [],
             },
         ],
@@ -150,7 +155,7 @@ services: [
             Method {
                 name: "OpenLog",
                 input_type: "LogMessage",
-                output_type: "google.rpc.Status",
+                output_type: "google..rpc..Status",
                 client_streaming: true,
                 server_streaming: false,
                 options: [],

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const LogType = z.enum([
+  'UNSPECIFIED',
   'BUCK_LOG',
   'BUCK_MACHINE_LOG',
   'CHROME_TRACE_LOG',
