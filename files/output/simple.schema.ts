@@ -9,6 +9,12 @@ const Gender = z.enum([
   'MALE',
   'FEMALE',
 ]);
+const Address = z.object({
+  street: z.string(),
+  city: z.string(),
+  state: z.string(),
+  zip: z.string(),
+});
 const Person = z.object({
   name: z.string(),
   age: z.number().int(),
@@ -21,10 +27,4 @@ const Person = z.object({
     z.object({ nickname: z.string() }),
     z.object({ alias: z.string() }),
   ]),
-});
-const Address = z.object({
-  street: z.string(),
-  city: z.string(),
-  state: z.string(),
-  zip: z.string(),
 });

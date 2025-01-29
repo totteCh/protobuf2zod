@@ -13,14 +13,14 @@ const LogType = z.enum([
   'CRITICAL_PATH_LOG',
   'RULE_KEY_LOG',
 ]);
-const CreateLogRequest = z.object({
-  logFilePath: z.string(),
-  logType: LogType,
+const LogMessage = z.object({
+  logId: z.number().int(),
+  logMessage: z.string(),
 });
 const CreateLogResponse = z.object({
   logId: z.number().int(),
 });
-const LogMessage = z.object({
-  logId: z.number().int(),
-  logMessage: z.string(),
+const CreateLogRequest = z.object({
+  logFilePath: z.string(),
+  logType: LogType,
 });

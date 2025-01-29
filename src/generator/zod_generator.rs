@@ -2,6 +2,9 @@ use crate::parser::ast::{
     Enum, EnumValue, Field, FieldLabel, FieldType, Message, OneOf, ProtoFile,
 };
 use heck::ToLowerCamelCase;
+use petgraph::algo::toposort;
+use petgraph::graphmap::DiGraphMap;
+use std::collections::HashSet;
 use std::fmt::Write;
 
 pub fn generate_zod_schemas(proto_file: &ProtoFile) -> String {
@@ -17,7 +20,33 @@ pub fn generate_zod_schemas(proto_file: &ProtoFile) -> String {
         generate_enum_schema(&mut output, enum_def);
     }
 
+    // Build dependency graph for message schemas
+    let mut graph = DiGraphMap::new();
+    let mut message_names = HashSet::new();
     for message in &proto_file.messages {
+        message_names.insert(&message.name);
+        graph.add_node(&message.name);
+    }
+    for message in &proto_file.messages {
+        for field in &message.fields {
+            if let FieldType::MessageOrEnum(ref name) = field.typ {
+                if message_names.contains(name) {
+                    graph.add_edge(&message.name, name, ());
+                }
+            }
+        }
+    }
+
+    // Perform topological sort to determine the correct order
+    let sorted_messages = toposort(&graph, None).expect("Cyclic dependency detected");
+
+    // Generate message schemas in the sorted order
+    for message_name in sorted_messages {
+        let message = proto_file
+            .messages
+            .iter()
+            .find(|m| &m.name == message_name)
+            .unwrap();
         generate_message_schema(&mut output, message);
     }
 
@@ -37,7 +66,7 @@ fn generate_message_schema(output: &mut String, message: &Message) {
 
 fn generate_field(output: &mut String, field: &Field, is_oneof: bool) {
     let field_type = match &field.typ {
-        FieldType::Double | FieldType::Float => "z.number()",
+        FieldType::Double | FieldType::Float => "z.number()".to_string(),
         FieldType::Int32
         | FieldType::Int64
         | FieldType::UInt32
@@ -47,11 +76,11 @@ fn generate_field(output: &mut String, field: &Field, is_oneof: bool) {
         | FieldType::Fixed32
         | FieldType::Fixed64
         | FieldType::SFixed32
-        | FieldType::SFixed64 => "z.number().int()",
-        FieldType::Bool => "z.boolean()",
-        FieldType::String => "z.string()",
-        FieldType::Bytes => "z.instanceof(Uint8Array)",
-        FieldType::MessageOrEnum(ref name) => name,
+        | FieldType::SFixed64 => "z.number().int()".to_string(),
+        FieldType::Bool => "z.boolean()".to_string(),
+        FieldType::String => "z.string()".to_string(),
+        FieldType::Bytes => "z.instanceof(Uint8Array)".to_string(),
+        FieldType::MessageOrEnum(ref name) => name.clone(),
         FieldType::Map(ref key_type, ref value_type) => {
             let key_type_str = match key_type.as_ref() {
                 FieldType::String => "z.string()",
@@ -88,15 +117,14 @@ fn generate_field(output: &mut String, field: &Field, is_oneof: bool) {
                 _ => "z.any()", // Default to any for unsupported value types
             };
 
-            let record_str = &format!("z.record({}, {})", key_type_str, value_type_str).to_string();
-            &record_str.to_string()
+            format!("z.record({}, {})", key_type_str, value_type_str)
         }
     };
 
     let field_type = if let FieldLabel::Repeated = field.label {
         format!("{}.array()", field_type)
     } else {
-        field_type.to_string()
+        field_type
     };
 
     let field_name = to_camel_case(&field.name);
