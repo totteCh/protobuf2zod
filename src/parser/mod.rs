@@ -495,6 +495,15 @@ where
     Err(ParseError::UnexpectedEndOfInput(open_brace_token.location))
 }
 
+/// Parses a `oneof` block from the token stream.
+///
+/// # Arguments
+///
+/// * `tokens` - A mutable reference to a `Peekable` iterator over tokens.
+///
+/// # Returns
+///
+/// A `Result` containing a `OneOf` struct if successful, or a `ParseError` if an error occurs.
 fn parse_oneof<'a, I>(tokens: &mut Peekable<I>) -> Result<OneOf, ParseError>
 where
     I: Iterator<Item = TokenWithLocation<'a>>,
@@ -524,6 +533,16 @@ where
     Ok(oneof)
 }
 
+/// Expects a specific token from the token stream.
+///
+/// # Arguments
+///
+/// * `tokens` - A mutable reference to a `Peekable` iterator over tokens.
+/// * `expected` - The expected token.
+///
+/// # Returns
+///
+/// A `Result` containing a `TokenWithLocation` if the expected token is found, or a `ParseError` if an error occurs.
 fn expect_token<'a, I>(
     tokens: &mut Peekable<I>,
     expected: Token,
@@ -545,6 +564,15 @@ where
     }
 }
 
+/// Expects an identifier token from the token stream.
+///
+/// # Arguments
+///
+/// * `tokens` - A mutable reference to a `Peekable` iterator over tokens.
+///
+/// # Returns
+///
+/// A `Result` containing the identifier as a `String` if successful, or a `ParseError` if an error occurs.
 fn expect_identifier<'a, I>(tokens: &mut Peekable<I>) -> Result<String, ParseError>
 where
     I: Iterator<Item = TokenWithLocation<'a>>,

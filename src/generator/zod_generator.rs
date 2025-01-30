@@ -7,6 +7,15 @@ use petgraph::graphmap::DiGraphMap;
 use std::collections::HashSet;
 use std::fmt::Write;
 
+/// Generates Zod schemas from a `ProtoFile`.
+///
+/// # Arguments
+///
+/// * `proto_file` - A reference to the `ProtoFile` containing the parsed Protobuf definitions.
+///
+/// # Returns
+///
+/// A `String` containing the generated Zod schemas.
 pub fn generate_zod_schemas(proto_file: &ProtoFile) -> String {
     let mut output = String::new();
 
@@ -53,6 +62,12 @@ pub fn generate_zod_schemas(proto_file: &ProtoFile) -> String {
     output
 }
 
+/// Generates a Zod schema for a message.
+///
+/// # Arguments
+///
+/// * `output` - A mutable reference to a `String` to write the generated schema to.
+/// * `message` - A reference to the `Message` for which to generate the schema.
 fn generate_message_schema(output: &mut String, message: &Message) {
     writeln!(output, "const {} = z.object({{", message.name).unwrap();
     for field in &message.fields {
@@ -64,6 +79,13 @@ fn generate_message_schema(output: &mut String, message: &Message) {
     writeln!(output, "}});").unwrap();
 }
 
+/// Generates a Zod schema for a field.
+///
+/// # Arguments
+///
+/// * `output` - A mutable reference to a `String` to write the generated schema to.
+/// * `field` - A reference to the `Field` for which to generate the schema.
+/// * `is_oneof` - A boolean indicating whether the field is part of a `oneof` block.
 fn generate_field(output: &mut String, field: &Field, is_oneof: bool) {
     let field_type = match &field.typ {
         FieldType::Double | FieldType::Float => "z.number()".to_string(),
@@ -140,6 +162,12 @@ fn generate_field(output: &mut String, field: &Field, is_oneof: bool) {
     }
 }
 
+/// Generates a Zod schema for a `oneof` block.
+///
+/// # Arguments
+///
+/// * `output` - A mutable reference to a `String` to write the generated schema to.
+/// * `oneof` - A reference to the `OneOf` block for which to generate the schema.
 fn generate_oneof_schema(output: &mut String, oneof: &OneOf) {
     writeln!(output, "  {}: z.union([", to_camel_case(&oneof.name)).unwrap();
     for field in &oneof.fields {
@@ -148,6 +176,12 @@ fn generate_oneof_schema(output: &mut String, oneof: &OneOf) {
     writeln!(output, "  ]),").unwrap();
 }
 
+/// Generates a Zod schema for an `enum`.
+///
+/// # Arguments
+///
+/// * `output` - A mutable reference to a `String` to write the generated schema to.
+/// * `enum_def` - A reference to the `Enum` for which to generate the schema.
 fn generate_enum_schema(output: &mut String, enum_def: &Enum) {
     writeln!(output, "const {} = z.enum([", enum_def.name).unwrap();
     let prefix = find_common_prefix(&enum_def.values);
@@ -158,10 +192,28 @@ fn generate_enum_schema(output: &mut String, enum_def: &Enum) {
     writeln!(output, "]);").unwrap();
 }
 
+/// Converts a string to camel case.
+///
+/// # Arguments
+///
+/// * `s` - A reference to the string to convert.
+///
+/// # Returns
+///
+/// A `String` containing the camel case version of the input string.
 fn to_camel_case(s: &str) -> String {
     s.to_lower_camel_case()
 }
 
+/// Finds the common prefix in a list of enum values.
+///
+/// # Arguments
+///
+/// * `values` - A reference to a slice of `EnumValue`.
+///
+/// # Returns
+///
+/// A `String` containing the common prefix of the enum values.
 fn find_common_prefix(values: &[EnumValue]) -> String {
     if values.is_empty() {
         return String::new();
