@@ -59,7 +59,7 @@ pub fn generate_zod_schemas(proto_file: &ProtoFile) -> String {
         generate_message_schema(&mut output, message);
     }
 
-    output
+    output.trim_end().to_string()
 }
 
 /// Generates a Zod schema for a message.
@@ -69,7 +69,7 @@ pub fn generate_zod_schemas(proto_file: &ProtoFile) -> String {
 /// * `output` - A mutable reference to a `String` to write the generated schema to.
 /// * `message` - A reference to the `Message` for which to generate the schema.
 fn generate_message_schema(output: &mut String, message: &Message) {
-    writeln!(output, "const {} = z.object({{", message.name).unwrap();
+    writeln!(output, "export const {}Schema = z.object({{", message.name).unwrap();
     for field in &message.fields {
         generate_field(output, field, false);
     }
@@ -77,6 +77,12 @@ fn generate_message_schema(output: &mut String, message: &Message) {
         generate_oneof_schema(output, oneof);
     }
     writeln!(output, "}});").unwrap();
+    writeln!(
+        output,
+        "export type {0} = z.infer<typeof {0}Schema>;\n",
+        message.name
+    )
+    .unwrap();
 }
 
 /// Generates a Zod schema for a field.
@@ -102,7 +108,7 @@ fn generate_field(output: &mut String, field: &Field, is_oneof: bool) {
         FieldType::Bool => "z.boolean()".to_string(),
         FieldType::String => "z.string()".to_string(),
         FieldType::Bytes => "z.instanceof(Uint8Array)".to_string(),
-        FieldType::MessageOrEnum(ref name) => name.clone(),
+        FieldType::MessageOrEnum(ref name) => format!("{}Schema", name.clone()),
         FieldType::Map(ref key_type, ref value_type) => {
             let key_type_str = match key_type.as_ref() {
                 FieldType::String => "z.string()",
@@ -135,7 +141,7 @@ fn generate_field(output: &mut String, field: &Field, is_oneof: bool) {
                 FieldType::Bool => "z.boolean()",
                 FieldType::String => "z.string()",
                 FieldType::Bytes => "z.instanceof(Uint8Array)",
-                FieldType::MessageOrEnum(ref name) => name,
+                FieldType::MessageOrEnum(ref name) => &format!("{}Schema", name),
                 _ => "z.any()", // Default to any for unsupported value types
             };
 
@@ -183,13 +189,19 @@ fn generate_oneof_schema(output: &mut String, oneof: &OneOf) {
 /// * `output` - A mutable reference to a `String` to write the generated schema to.
 /// * `enum_def` - A reference to the `Enum` for which to generate the schema.
 fn generate_enum_schema(output: &mut String, enum_def: &Enum) {
-    writeln!(output, "const {} = z.enum([", enum_def.name).unwrap();
+    writeln!(output, "export const {}Schema = z.enum([", enum_def.name).unwrap();
     let prefix = find_common_prefix(&enum_def.values);
     for value in &enum_def.values {
         let stripped_value = value.name.strip_prefix(&prefix).unwrap_or(&value.name);
         writeln!(output, "  '{}',", stripped_value).unwrap();
     }
     writeln!(output, "]);").unwrap();
+    writeln!(
+        output,
+        "export type {0} = z.infer<typeof {0}Schema>;\n",
+        enum_def.name
+    )
+    .unwrap();
 }
 
 /// Converts a string to camel case.

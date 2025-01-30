@@ -4,28 +4,33 @@
 
 import { z } from 'zod';
 
-const Gender = z.enum([
+export const GenderSchema = z.enum([
   'UNSPECIFIED',
   'MALE',
   'FEMALE',
   'OTHER',
 ]);
-const Address = z.object({
+export type Gender = z.infer<typeof GenderSchema>;
+
+export const AddressSchema = z.object({
   street: z.string(),
   city: z.string(),
   state: z.string(),
   zip: z.string(),
 });
-const Person = z.object({
+export type Address = z.infer<typeof AddressSchema>;
+
+export const PersonSchema = z.object({
   name: z.string(),
   age: z.number().int(),
   hobbies: z.string().array(),
-  gender: Gender,
+  gender: GenderSchema,
   attributes: z.record(z.string(), z.string()),
   scores: z.record(z.string(), z.number().int()),
-  addresses: z.record(z.number().int(), Address),
+  addresses: z.record(z.number().int(), AddressSchema),
   identity: z.union([
     z.object({ nickname: z.string() }),
     z.object({ alias: z.string() }),
   ]),
 });
+export type Person = z.infer<typeof PersonSchema>;

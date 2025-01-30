@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 
-const LogType = z.enum([
+export const LogTypeSchema = z.enum([
   'UNSPECIFIED',
   'BUCK_LOG',
   'BUCK_MACHINE_LOG',
@@ -13,14 +13,21 @@ const LogType = z.enum([
   'CRITICAL_PATH_LOG',
   'RULE_KEY_LOG',
 ]);
-const LogMessage = z.object({
+export type LogType = z.infer<typeof LogTypeSchema>;
+
+export const LogMessageSchema = z.object({
   logId: z.number().int(),
   logMessage: z.string(),
 });
-const CreateLogResponse = z.object({
+export type LogMessage = z.infer<typeof LogMessageSchema>;
+
+export const CreateLogResponseSchema = z.object({
   logId: z.number().int(),
 });
-const CreateLogRequest = z.object({
+export type CreateLogResponse = z.infer<typeof CreateLogResponseSchema>;
+
+export const CreateLogRequestSchema = z.object({
   logFilePath: z.string(),
-  logType: LogType,
+  logType: LogTypeSchema,
 });
+export type CreateLogRequest = z.infer<typeof CreateLogRequestSchema>;

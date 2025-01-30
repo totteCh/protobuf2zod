@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     info!("Generated Zod schemas:\n{}", zod_schemas);
 
     // Write the generated Zod schemas to the output file
-    fs::write(&output_path, zod_schemas).map_err(|e| {
+    fs::write(&output_path, format!("{}\n", zod_schemas)).map_err(|e| {
         error!("Failed to write to the output file: {}", e);
         format!(
             "Failed to write to the output file '{}': {}",
