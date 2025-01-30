@@ -8,6 +8,7 @@ const Gender = z.enum([
   'UNSPECIFIED',
   'MALE',
   'FEMALE',
+  'OTHER',
 ]);
 const Address = z.object({
   street: z.string(),

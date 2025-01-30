@@ -313,6 +313,11 @@ mod tests {
             number: NumberValue::DecimalInt(2),
             options: Vec::new(),
         });
+        enum_def.values.push(EnumValue {
+            name: "OTHER".to_string(),
+            number: NumberValue::DecimalInt(3),
+            options: Vec::new(),
+        });
         proto_file.enums.push(enum_def);
 
         assert_eq!(proto_file.syntax, Syntax::Proto3);
@@ -321,6 +326,6 @@ mod tests {
         assert_eq!(proto_file.messages.len(), 1);
         assert_eq!(proto_file.enums.len(), 1);
         assert_eq!(proto_file.messages[0].fields.len(), 2);
-        assert_eq!(proto_file.enums[0].values.len(), 3);
+        assert_eq!(proto_file.enums[0].values.len(), 4);
     }
 }
