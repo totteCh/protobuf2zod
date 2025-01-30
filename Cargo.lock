@@ -388,6 +388,7 @@ dependencies = [
  "log",
  "nom",
  "petgraph",
+ "protobuf_to_zod",
 ]
 
 [[package]]
