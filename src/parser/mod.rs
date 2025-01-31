@@ -250,6 +250,7 @@ where
     I: Iterator<Item = TokenWithLocation<'a>>,
 {
     // Consume 'package' token
+    debug!("Parsing package declaration");
     let package_token = tokens
         .next()
         .ok_or_else(|| ParseError::UnexpectedEndOfInput(Location::new(0, 0)))?
@@ -300,12 +301,14 @@ where
         }
         None => return Err(ParseError::UnexpectedEndOfInput(package_token.location)),
     };
+    debug!("Parsed package name: {}", package_name);
 
     // Expect semicolon
     tokens
         .next()
         .ok_or(ParseError::UnexpectedEndOfInput(package_token.location))?
         .expect(Token::Semicolon)?;
+    debug!("Consumed semicolon");
 
     proto_file.package = Some(package_name);
     Ok(())
@@ -333,6 +336,7 @@ fn parse_import<'a, I>(
 where
     I: Iterator<Item = TokenWithLocation<'a>>,
 {
+    debug!("Parsing import statement");
     let import_token = tokens
         .next()
         .ok_or_else(|| ParseError::UnexpectedEndOfInput(Location::new(0, 0)))?;
@@ -377,6 +381,7 @@ where
             ));
         }
     };
+    debug!("Parsed import path: {}", path);
 
     // Expect semicolon
     let semicolon_token = tokens
@@ -388,6 +393,7 @@ where
             semicolon_token.location,
         ));
     }
+    debug!("Consumed semicolon");
 
     // Add the import to the proto file
     proto_file.imports.push(Import { path, kind });
@@ -413,6 +419,7 @@ where
     I: Iterator<Item = TokenWithLocation<'a>>,
 {
     // Expect 'message' keyword
+    debug!("Parsing message definition");
     let message_token = tokens
         .next()
         .ok_or_else(|| ParseError::UnexpectedEndOfInput(Location::new(0, 0)))?;
@@ -440,6 +447,7 @@ where
             ));
         }
     };
+    debug!("Parsed message name: {}", name);
 
     // Expect opening brace
     let open_brace_token = tokens
@@ -461,28 +469,35 @@ where
         if let Some(token_with_location) = tokens.peek() {
             match &token_with_location.token {
                 Token::CloseBrace => {
+                    debug!("Closing message definition");
                     tokens.next(); // Consume closing brace
                     return Ok(message);
                 }
                 Token::Message => {
+                    debug!("Parsing nested message");
                     let nested_message = parse_message(tokens)?;
                     message.nested_messages.push(nested_message);
                 }
                 Token::Enum => {
+                    debug!("Parsing nested enum");
                     let nested_enum = parse_enum(tokens)?;
                     message.nested_enums.push(nested_enum);
                 }
                 Token::Option => {
+                    debug!("Parsing message option");
                     parse_option(tokens, &mut message.options)?;
                 }
                 Token::Reserved => {
+                    debug!("Parsing reserved statement");
                     parse_reserved(tokens, &mut message.reserved)?;
                 }
                 Token::Oneof => {
+                    debug!("Parsing oneof block");
                     let oneof = parse_oneof(tokens)?;
                     message.oneofs.push(oneof);
                 }
                 _ => {
+                    debug!("Parsing message field");
                     let field = parse_field(tokens)?;
                     message.fields.push(field);
                 }
@@ -645,13 +660,7 @@ where
         parse_map_field(tokens)?
     } else {
         // Parse field type
-        let type_token = tokens
-            .next()
-            .ok_or(ParseError::UnexpectedEndOfInput(start_location))?;
-
-        debug!("Parsing field type: {:?}", type_token);
-
-        let typ = parse_field_type(&type_token)?;
+        let typ = parse_field_type(tokens)?;
 
         // Parse field name
         let name = parse_field_name(tokens)?;
@@ -720,6 +729,7 @@ fn parse_field_name<'a, I>(tokens: &mut Peekable<I>) -> Result<String, ParseErro
 where
     I: Iterator<Item = TokenWithLocation<'a>>,
 {
+    debug!("Parsing field name");
     let mut name_parts = Vec::new();
     let mut location = Location::new(0, 0);
 
@@ -1404,9 +1414,75 @@ where
     }
 }
 
-fn parse_field_type(token: &TokenWithLocation) -> Result<FieldType, ParseError> {
-    match &token.token {
-        Token::Identifier(typ) => match *typ {
+/// Parses a field type from the token stream.
+///
+/// # Arguments
+///
+/// * `tokens` - A mutable reference to a Peekable iterator over tokens.
+///
+/// # Returns
+///
+/// A `Result` containing a `FieldType` if successful, or a `ParseError` if an error occurs.
+fn parse_field_type<'a, I>(tokens: &mut Peekable<I>) -> Result<FieldType, ParseError>
+where
+    I: Iterator<Item = TokenWithLocation<'a>>,
+{
+    let mut typ = String::new();
+    let mut location = Location::new(0, 0);
+
+    while let Some(token) = tokens.peek() {
+        match token.token {
+            Token::StringType => {
+                debug!("Parsing field type part: string");
+                if typ.is_empty() {
+                    location = token.location;
+                }
+                if !typ.is_empty() {
+                    typ.push('.');
+                }
+                typ.push_str("string");
+                tokens.next(); // Consume the token
+                break;
+            }
+            Token::Identifier(ref name) => {
+                debug!("Parsing field type part: Identifier ('{}')", name);
+                if typ.is_empty() {
+                    location = token.location;
+                }
+                typ.push_str(name);
+                tokens.next(); // Consume the token
+
+                // If next token is another `Identifier` (field name), break.
+                if let Some(TokenWithLocation {
+                    token: Token::Identifier(_),
+                    ..
+                }) = tokens.peek()
+                {
+                    break;
+                }
+            }
+            Token::Dot => {
+                debug!("Parsing field type part: Dot('.')");
+                if typ.is_empty() {
+                    return Err(ParseError::UnexpectedToken(
+                        "Unexpected dot in type".to_string(),
+                        token.location,
+                    ));
+                }
+                typ.push('.');
+                tokens.next(); // Consume the token
+            }
+            _ => break,
+        }
+    }
+
+    if typ.is_empty() {
+        Err(ParseError::UnexpectedToken(
+            "Expected field type".to_string(),
+            location,
+        ))
+    } else {
+        match typ.as_str() {
             "double" => Ok(FieldType::Double),
             "float" => Ok(FieldType::Float),
             "int32" => Ok(FieldType::Int32),
@@ -1420,14 +1496,10 @@ fn parse_field_type(token: &TokenWithLocation) -> Result<FieldType, ParseError> 
             "sfixed32" => Ok(FieldType::SFixed32),
             "sfixed64" => Ok(FieldType::SFixed64),
             "bool" => Ok(FieldType::Bool),
+            "string" => Ok(FieldType::String),
             "bytes" => Ok(FieldType::Bytes),
-            _ => Ok(FieldType::MessageOrEnum(typ.to_string())),
-        },
-        Token::StringType => Ok(FieldType::String),
-        _ => Err(ParseError::UnexpectedToken(
-            format!("Expected field type, found {:?}", token.token),
-            token.location,
-        )),
+            _ => Ok(FieldType::MessageOrEnum(typ)),
+        }
     }
 }
 
@@ -1547,10 +1619,7 @@ where
         .expect(Token::LessThan)?;
 
     // Parse key type
-    let key_type_token = tokens
-        .next()
-        .ok_or_else(|| ParseError::UnexpectedEndOfInput(Location::new(0, 0)))?;
-    let key_type = parse_field_type(&key_type_token)?;
+    let key_type = parse_field_type(tokens)?;
 
     // Expect ','
     tokens
@@ -1559,10 +1628,7 @@ where
         .expect(Token::Comma)?;
 
     // Parse value type
-    let value_type_token = tokens
-        .next()
-        .ok_or_else(|| ParseError::UnexpectedEndOfInput(Location::new(0, 0)))?;
-    let value_type = parse_field_type(&value_type_token)?;
+    let value_type = parse_field_type(tokens)?;
 
     // Expect '>'
     tokens

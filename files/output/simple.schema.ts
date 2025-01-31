@@ -28,6 +28,8 @@ export const PersonSchema = z.object({
   attributes: z.record(z.string(), z.string()),
   scores: z.record(z.string(), z.number().int()),
   addresses: z.record(z.number().int(), AddressSchema),
+  birthdate: z.instanceof(Date),
+  events: z.record(z.string(), z.instanceof(Date)),
   identity: z.union([
     z.object({ nickname: z.string() }),
     z.object({ alias: z.string() }),

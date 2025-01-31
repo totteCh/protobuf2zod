@@ -93,61 +93,7 @@ fn generate_message_schema(output: &mut String, message: &Message) {
 /// * `field` - A reference to the `Field` for which to generate the schema.
 /// * `is_oneof` - A boolean indicating whether the field is part of a `oneof` block.
 fn generate_field(output: &mut String, field: &Field, is_oneof: bool) {
-    let field_type = match &field.typ {
-        FieldType::Double | FieldType::Float => "z.number()".to_string(),
-        FieldType::Int32
-        | FieldType::Int64
-        | FieldType::UInt32
-        | FieldType::UInt64
-        | FieldType::SInt32
-        | FieldType::SInt64
-        | FieldType::Fixed32
-        | FieldType::Fixed64
-        | FieldType::SFixed32
-        | FieldType::SFixed64 => "z.number().int()".to_string(),
-        FieldType::Bool => "z.boolean()".to_string(),
-        FieldType::String => "z.string()".to_string(),
-        FieldType::Bytes => "z.instanceof(Uint8Array)".to_string(),
-        FieldType::MessageOrEnum(ref name) => format!("{}Schema", name.clone()),
-        FieldType::Map(ref key_type, ref value_type) => {
-            let key_type_str = match key_type.as_ref() {
-                FieldType::String => "z.string()",
-                FieldType::Int32
-                | FieldType::Int64
-                | FieldType::UInt32
-                | FieldType::UInt64
-                | FieldType::SInt32
-                | FieldType::SInt64
-                | FieldType::Fixed32
-                | FieldType::Fixed64
-                | FieldType::SFixed32
-                | FieldType::SFixed64 => "z.number().int()",
-                FieldType::Bool => "z.boolean()",
-                _ => "z.any()", // Default to any for unsupported key types
-            };
-
-            let value_type_str = match value_type.as_ref() {
-                FieldType::Double | FieldType::Float => "z.number()",
-                FieldType::Int32
-                | FieldType::Int64
-                | FieldType::UInt32
-                | FieldType::UInt64
-                | FieldType::SInt32
-                | FieldType::SInt64
-                | FieldType::Fixed32
-                | FieldType::Fixed64
-                | FieldType::SFixed32
-                | FieldType::SFixed64 => "z.number().int()",
-                FieldType::Bool => "z.boolean()",
-                FieldType::String => "z.string()",
-                FieldType::Bytes => "z.instanceof(Uint8Array)",
-                FieldType::MessageOrEnum(ref name) => &format!("{}Schema", name),
-                _ => "z.any()", // Default to any for unsupported value types
-            };
-
-            format!("z.record({}, {})", key_type_str, value_type_str)
-        }
-    };
+    let field_type = generate_zod_type(&field.typ);
 
     let field_type = if let FieldLabel::Repeated = field.label {
         format!("{}.array()", field_type)
@@ -165,6 +111,48 @@ fn generate_field(output: &mut String, field: &Field, is_oneof: bool) {
         .unwrap();
     } else {
         writeln!(output, "  {}: {},", field_name, field_type).unwrap();
+    }
+}
+
+/// Generates a Zod type for a given `FieldType`.
+///
+/// # Arguments
+///
+/// * `field_type` - A reference to the `FieldType` for which to generate the Zod type.
+///
+/// # Returns
+///
+/// A `String` containing the generated Zod type.
+fn generate_zod_type(field_type: &FieldType) -> String {
+    match field_type {
+        FieldType::Double | FieldType::Float => "z.number()".to_string(),
+        FieldType::Int32
+        | FieldType::Int64
+        | FieldType::UInt32
+        | FieldType::UInt64
+        | FieldType::SInt32
+        | FieldType::SInt64
+        | FieldType::Fixed32
+        | FieldType::Fixed64
+        | FieldType::SFixed32
+        | FieldType::SFixed64 => "z.number().int()".to_string(),
+        FieldType::Bool => "z.boolean()".to_string(),
+        FieldType::String => "z.string()".to_string(),
+        FieldType::Bytes => "z.instanceof(Uint8Array)".to_string(),
+        FieldType::MessageOrEnum(ref name) => {
+            if name == "google.protobuf.Timestamp" {
+                "z.instanceof(Date)".to_string()
+            } else if name.contains('.') {
+                "z.unknown()".to_string()
+            } else {
+                format!("{}Schema", name.clone())
+            }
+        }
+        FieldType::Map(ref key_type, ref value_type) => {
+            let key_type_str = generate_zod_type(key_type);
+            let value_type_str = generate_zod_type(value_type);
+            format!("z.record({}, {})", key_type_str, value_type_str)
+        }
     }
 }
 

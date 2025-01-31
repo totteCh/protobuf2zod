@@ -55,6 +55,25 @@ fn create_test_proto_file() -> ProtoFile {
                     number: NumberValue::DecimalInt(3),
                     options: vec![],
                 },
+                Field {
+                    name: "birthdate".to_string(),
+                    label: FieldLabel::Optional,
+                    typ: FieldType::MessageOrEnum("google.protobuf.Timestamp".to_string()),
+                    number: NumberValue::DecimalInt(4),
+                    options: vec![],
+                },
+                Field {
+                    name: "events".to_string(),
+                    label: FieldLabel::Optional,
+                    typ: FieldType::Map(
+                        Box::new(FieldType::String),
+                        Box::new(FieldType::MessageOrEnum(
+                            "google.protobuf.Timestamp".to_string(),
+                        )),
+                    ),
+                    number: NumberValue::DecimalInt(5),
+                    options: vec![],
+                },
             ],
             oneofs: vec![],
             nested_messages: vec![],
@@ -93,6 +112,8 @@ export const PersonSchema = z.object({
   name: z.string(),
   age: z.number().int(),
   gender: GenderSchema,
+  birthdate: z.instanceof(Date),
+  events: z.record(z.string(), z.instanceof(Date)),
 });
 export type Person = z.infer<typeof PersonSchema>;"#;
 

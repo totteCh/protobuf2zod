@@ -1,6 +1,8 @@
 syntax = "proto3";
 package simple;
 
+import "google/protobuf/timestamp.proto";
+
 message Person {
   string name = 1;
   int32 age = 2;
@@ -15,6 +17,9 @@ message Person {
   map<string, string> attributes = 7;
   map<string, int32> scores = 8;
   map<int32, Address> addresses = 9;
+
+  google.protobuf.Timestamp birthdate = 10;
+  map<string, google.protobuf.Timestamp> events = 11;
 }
 
 message Address {
