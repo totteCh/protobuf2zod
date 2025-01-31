@@ -1,7 +1,7 @@
 use crate::parser::ast::{
     Enum, EnumValue, Field, FieldLabel, FieldType, Message, OneOf, ProtoFile,
 };
-use heck::ToLowerCamelCase;
+use heck::{ToLowerCamelCase, ToPascalCase};
 use petgraph::algo::toposort;
 use petgraph::graphmap::DiGraphMap;
 use std::collections::HashSet;
@@ -101,7 +101,7 @@ fn generate_field(output: &mut String, field: &Field, is_oneof: bool) {
         field_type
     };
 
-    let field_name = to_camel_case(&field.name);
+    let field_name = field.name.to_lower_camel_case();
     if is_oneof {
         writeln!(
             output,
@@ -163,7 +163,7 @@ fn generate_zod_type(field_type: &FieldType) -> String {
 /// * `output` - A mutable reference to a `String` to write the generated schema to.
 /// * `oneof` - A reference to the `OneOf` block for which to generate the schema.
 fn generate_oneof_schema(output: &mut String, oneof: &OneOf) {
-    writeln!(output, "  {}: z.union([", to_camel_case(&oneof.name)).unwrap();
+    writeln!(output, "  {}: z.union([", oneof.name.to_lower_camel_case()).unwrap();
     for field in &oneof.fields {
         generate_field(output, field, true);
     }
@@ -177,32 +177,23 @@ fn generate_oneof_schema(output: &mut String, oneof: &OneOf) {
 /// * `output` - A mutable reference to a `String` to write the generated schema to.
 /// * `enum_def` - A reference to the `Enum` for which to generate the schema.
 fn generate_enum_schema(output: &mut String, enum_def: &Enum) {
-    writeln!(output, "export const {}Schema = z.enum([", enum_def.name).unwrap();
+    writeln!(output, "export enum {} {{", enum_def.name).unwrap();
     let prefix = find_common_prefix(&enum_def.values);
-    for value in &enum_def.values {
-        let stripped_value = value.name.strip_prefix(&prefix).unwrap_or(&value.name);
-        writeln!(output, "  '{}',", stripped_value).unwrap();
+    for (index, value) in enum_def.values.iter().enumerate() {
+        let stripped_value = value
+            .name
+            .strip_prefix(&prefix)
+            .unwrap_or(&value.name)
+            .to_pascal_case();
+        writeln!(output, "  {} = {},", stripped_value, index).unwrap();
     }
-    writeln!(output, "]);").unwrap();
+    writeln!(output, "}}").unwrap();
     writeln!(
         output,
-        "export type {0} = z.infer<typeof {0}Schema>;\n",
+        "export const {0}Schema = z.nativeEnum({0});\n",
         enum_def.name
     )
     .unwrap();
-}
-
-/// Converts a string to camel case.
-///
-/// # Arguments
-///
-/// * `s` - A reference to the string to convert.
-///
-/// # Returns
-///
-/// A `String` containing the camel case version of the input string.
-fn to_camel_case(s: &str) -> String {
-    s.to_lower_camel_case()
 }
 
 /// Finds the common prefix in a list of enum values.

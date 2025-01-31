@@ -100,13 +100,13 @@ fn test_generate_zod_schemas() {
 
 import { z } from 'zod';
 
-export const GenderSchema = z.enum([
-  'UNSPECIFIED',
-  'MALE',
-  'FEMALE',
-  'OTHER',
-]);
-export type Gender = z.infer<typeof GenderSchema>;
+export enum Gender {
+  Unspecified = 0,
+  Male = 1,
+  Female = 2,
+  Other = 3,
+}
+export const GenderSchema = z.nativeEnum(Gender);
 
 export const PersonSchema = z.object({
   name: z.string(),

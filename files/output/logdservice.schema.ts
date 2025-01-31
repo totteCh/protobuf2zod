@@ -4,16 +4,16 @@
 
 import { z } from 'zod';
 
-export const LogTypeSchema = z.enum([
-  'UNSPECIFIED',
-  'BUCK_LOG',
-  'BUCK_MACHINE_LOG',
-  'CHROME_TRACE_LOG',
-  'SIMPLE_CONSOLE_LOG',
-  'CRITICAL_PATH_LOG',
-  'RULE_KEY_LOG',
-]);
-export type LogType = z.infer<typeof LogTypeSchema>;
+export enum LogType {
+  Unspecified = 0,
+  BuckLog = 1,
+  BuckMachineLog = 2,
+  ChromeTraceLog = 3,
+  SimpleConsoleLog = 4,
+  CriticalPathLog = 5,
+  RuleKeyLog = 6,
+}
+export const LogTypeSchema = z.nativeEnum(LogType);
 
 export const LogMessageSchema = z.object({
   logId: z.number().int(),
