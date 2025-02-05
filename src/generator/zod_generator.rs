@@ -40,7 +40,7 @@ pub fn generate_zod_schemas(proto_file: &ProtoFile) -> String {
         for field in &message.fields {
             if let FieldType::MessageOrEnum(ref name) = field.typ {
                 if message_names.contains(name) {
-                    graph.add_edge(&message.name, name, ());
+                    graph.add_edge(name, &message.name, ());
                 }
             }
         }
